@@ -3,3 +3,5 @@ torchvision
 torchaudio
 pytorch-lightning
 tokenizers
+pandas
+numpy
