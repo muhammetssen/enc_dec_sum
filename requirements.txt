@@ -2,6 +2,8 @@ torch
 torchvision
 torchaudio
 pytorch-lightning
+transformers
+sentencepiece
 tokenizers
 pandas
 numpy
