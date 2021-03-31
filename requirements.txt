@@ -7,3 +7,6 @@ sentencepiece
 tokenizers
 pandas
 numpy
+datasets
+nltk
+rouge_score
