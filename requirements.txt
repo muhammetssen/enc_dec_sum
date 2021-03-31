@@ -2,7 +2,7 @@ torch
 torchvision
 torchaudio
 pytorch-lightning
-transformers
+git+https://github.com/huggingface/transformers
 sentencepiece
 tokenizers
 pandas

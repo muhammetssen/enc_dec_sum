@@ -20,15 +20,15 @@ Fine-tuning the library models for sequence to sequence.
 
 import logging
 import os
+import re
 import sys
 from dataclasses import dataclass, field
 from typing import Optional
 
 import nltk  # Here to have a nice missing dependency error message early on
 import numpy as np
-from datasets import load_dataset, load_metric
-
 import transformers
+from datasets import load_dataset, load_metric
 from filelock import FileLock
 from transformers import (
     AutoConfig,
@@ -43,7 +43,6 @@ from transformers import (
 from transformers.file_utils import is_offline_mode
 from transformers.trainer_utils import get_last_checkpoint, is_main_process
 from transformers.utils import check_min_version
-
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 check_min_version("4.5.0.dev0")
@@ -92,7 +91,7 @@ class ModelArguments:
         default=False,
         metadata={
             "help": "Will use the token generated when running `transformers-cli login` (necessary to use this script "
-            "with private models)."
+                    "with private models)."
         },
     )
 
@@ -102,6 +101,10 @@ class DataTrainingArguments:
     """
     Arguments pertaining to what data we are going to input our model for training and eval.
     """
+
+    do_tr_lowercase: Optional[bool] = field(
+        default=False, metadata={"help": "The name of the dataset to use (via the datasets library)."}
+    )
 
     dataset_name: Optional[str] = field(
         default=None, metadata={"help": "The name of the dataset to use (via the datasets library)."}
@@ -124,7 +127,7 @@ class DataTrainingArguments:
         default=None,
         metadata={
             "help": "An optional input evaluation data file to evaluate the metrics (rouge) on "
-            "(a jsonlines or csv file)."
+                    "(a jsonlines or csv file)."
         },
     )
     test_file: Optional[str] = field(
@@ -144,59 +147,59 @@ class DataTrainingArguments:
         default=1024,
         metadata={
             "help": "The maximum total input sequence length after tokenization. Sequences longer "
-            "than this will be truncated, sequences shorter will be padded."
+                    "than this will be truncated, sequences shorter will be padded."
         },
     )
     max_target_length: Optional[int] = field(
         default=128,
         metadata={
             "help": "The maximum total sequence length for target text after tokenization. Sequences longer "
-            "than this will be truncated, sequences shorter will be padded."
+                    "than this will be truncated, sequences shorter will be padded."
         },
     )
     val_max_target_length: Optional[int] = field(
         default=None,
         metadata={
             "help": "The maximum total sequence length for validation target text after tokenization. Sequences longer "
-            "than this will be truncated, sequences shorter will be padded. Will default to `max_target_length`."
-            "This argument is also used to override the ``max_length`` param of ``model.generate``, which is used "
-            "during ``evaluate`` and ``predict``."
+                    "than this will be truncated, sequences shorter will be padded. Will default to `max_target_length`."
+                    "This argument is also used to override the ``max_length`` param of ``model.generate``, which is used "
+                    "during ``evaluate`` and ``predict``."
         },
     )
     pad_to_max_length: bool = field(
         default=False,
         metadata={
             "help": "Whether to pad all samples to model maximum sentence length. "
-            "If False, will pad the samples dynamically when batching to the maximum length in the batch. More "
-            "efficient on GPU but very bad for TPU."
+                    "If False, will pad the samples dynamically when batching to the maximum length in the batch. More "
+                    "efficient on GPU but very bad for TPU."
         },
     )
     max_train_samples: Optional[int] = field(
         default=None,
         metadata={
             "help": "For debugging purposes or quicker training, truncate the number of training examples to this "
-            "value if set."
+                    "value if set."
         },
     )
     max_val_samples: Optional[int] = field(
         default=None,
         metadata={
             "help": "For debugging purposes or quicker training, truncate the number of validation examples to this "
-            "value if set."
+                    "value if set."
         },
     )
     max_test_samples: Optional[int] = field(
         default=None,
         metadata={
             "help": "For debugging purposes or quicker training, truncate the number of test examples to this "
-            "value if set."
+                    "value if set."
         },
     )
     num_beams: Optional[int] = field(
         default=None,
         metadata={
             "help": "Number of beams to use for evaluation. This argument will be passed to ``model.generate``, "
-            "which is used during ``evaluate`` and ``predict``."
+                    "which is used during ``evaluate`` and ``predict``."
         },
     )
     ignore_pad_token_for_loss: bool = field(
@@ -250,6 +253,10 @@ def main():
         model_args, data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+
+    print("Model arguements: {}".format(model_args))
+    print("Data arguements: {}".format(data_args))
+    print("Training arguements: {}".format(training_args))
 
     if data_args.source_prefix is None and model_args.model_name_or_path in [
         "t5-small",
@@ -399,9 +406,18 @@ def main():
             f"`{model.__class__.__name__}`. This will lead to loss being calculated twice and will take up more memory"
         )
 
+    def lower_tr(text):
+        text = re.sub(r'İ', 'i', text)
+        return re.sub(r'I', 'ı', text).lower().strip()
+
     def preprocess_function(examples):
         inputs = examples[text_column]
         targets = examples[summary_column]
+
+        if data_args.do_tr_lowercase:
+            inputs = [lower_tr(inp) for inp in inputs]
+            targets = [lower_tr(trg) for trg in targets]
+
         inputs = [prefix + inp for inp in inputs]
         model_inputs = tokenizer(inputs, max_length=data_args.max_source_length, padding=padding, truncation=True)
 
