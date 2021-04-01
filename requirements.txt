@@ -10,3 +10,4 @@ numpy
 datasets
 nltk
 rouge_score
+psutil
