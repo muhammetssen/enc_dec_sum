@@ -38,7 +38,7 @@ from transformers import (
     HfArgumentParser,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
-    set_seed,
+    set_seed, EncoderDecoderModel,
 )
 from transformers.file_utils import is_offline_mode
 from transformers.trainer_callback import EarlyStoppingCallback
@@ -356,14 +356,35 @@ def main():
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
     )
-    model = AutoModelForSeq2SeqLM.from_pretrained(
-        model_args.model_name_or_path,
-        from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        config=config,
-        cache_dir=model_args.cache_dir,
-        revision=model_args.model_revision,
-        use_auth_token=True if model_args.use_auth_token else None,
-    )
+
+    if "bert" in model_args.model_name_or_path:
+        tokenizer.bos_token = tokenizer.cls_token
+        tokenizer.eos_token = tokenizer.sep_token
+
+    if "bert" in model_args.model_name_or_path:
+        model = EncoderDecoderModel.from_encoder_decoder_pretrained(model_args.model_name_or_path,
+                                                                    model_args.model_name_or_path)
+        # set special tokens
+        model.config.decoder_start_token_id = tokenizer.bos_token_id
+        model.config.eos_token_id = tokenizer.eos_token_id
+        model.config.pad_token_id = tokenizer.pad_token_id
+
+        # sensible parameters for beam search
+        model.config.vocab_size = model.config.decoder.vocab_size
+    else:
+        model = AutoModelForSeq2SeqLM.from_pretrained(
+            model_args.model_name_or_path,
+            from_tf=bool(".ckpt" in model_args.model_name_or_path),
+            config=config,
+            cache_dir=model_args.cache_dir,
+            revision=model_args.model_revision,
+            use_auth_token=True if model_args.use_auth_token else None,
+        )
+
+    if "mbart" in model_args.model_name_or_path:
+        model.config.decoder_start_token_id = tokenizer.bos_token_id
+        model.config.eos_token_id = tokenizer.eos_token_id
+        model.config.pad_token_id = tokenizer.pad_token_id
 
     if model.config.decoder_start_token_id is None:
         raise ValueError("Make sure that `config.decoder_start_token_id` is correctly defined")
