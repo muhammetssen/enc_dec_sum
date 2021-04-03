@@ -41,6 +41,7 @@ from transformers import (
     set_seed,
 )
 from transformers.file_utils import is_offline_mode
+from transformers.trainer_callback import EarlyStoppingCallback
 from transformers.trainer_utils import get_last_checkpoint, is_main_process
 from transformers.utils import check_min_version
 
@@ -101,6 +102,10 @@ class DataTrainingArguments:
     """
     Arguments pertaining to what data we are going to input our model for training and eval.
     """
+    early_stopping_patience: Optional[int] = field(
+        default=None,
+        metadata={"help": "Patience for early stopping mechanism."},
+    )
 
     do_tr_lowercase: Optional[bool] = field(
         default=False, metadata={"help": "The name of the dataset to use (via the datasets library)."}
@@ -532,6 +537,8 @@ def main():
         tokenizer=tokenizer,
         data_collator=data_collator,
         compute_metrics=compute_metrics if training_args.predict_with_generate else None,
+        callbacks=[EarlyStoppingCallback(
+            early_stopping_patience=data_args.early_stopping_patience)] if data_args.early_stopping_patience else None,
     )
 
     # Training
