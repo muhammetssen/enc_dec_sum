@@ -138,4 +138,6 @@ dmypy.json
 *.csv
 *.tsv
 *.zip
+*.json
+*.out
 /runs
