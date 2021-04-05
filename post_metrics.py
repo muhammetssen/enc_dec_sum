@@ -1,28 +1,55 @@
+import argparse
 import json
 import re
 
 import datasets
-import pandas as pd
 import numpy as np
+import pandas as pd
 from nltk import ngrams
 from transformers import AutoTokenizer, AutoConfig, EncoderDecoderModel, AutoModelForSeq2SeqLM
 
 
+def lower_tr(text):
+    text = re.sub(r'İ', 'i', text)
+    return re.sub(r'I', 'ı', text).lower().strip()
+
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 class PostMetrics:
-    def __init__(self, model_name_or_path, num_workers, dataset_name=None, dataset_version=None,
+    def __init__(self, model_name_or_path, dataset_name=None, dataset_version=None,
                  dataset_test_csv_file_path=None, do_tr_lowercase=True, source_column_name="content",
-                 target_column_name="abstract", max_source_len=768, max_generation_len=120, beam_size=4,
-                 ngram_blocking_size=3, use_cuda=False):
+                 target_column_name="abstract", prefix=None, max_source_len=768, max_generation_len=120, beam_size=None,
+                 ngram_blocking_size=None, early_stopping=None, use_cuda=False, batch_size=2, write_results=True,
+                 text_outputs_file_path="text_outputs.csv",
+                 rouge_outputs_file_path="rouge_outputs.json",
+                 novelty_outputs_file_path="novelty_outputs.json"):
         self.model_name_or_path = model_name_or_path
         self.do_tr_lowercase = do_tr_lowercase
-        self.num_workers = num_workers
         self.source_column_name = source_column_name
         self.target_column_name = target_column_name
+        self.prefix = prefix
         self.max_source_len = max_source_len
         self.max_generation_len = max_generation_len
         self.beam_size = beam_size
+        self.early_stopping = early_stopping
         self.ngram_blocking_size = ngram_blocking_size
         self.use_cuda = use_cuda
+        self.batch_size = batch_size
+        self.write_results = write_results
+        self.text_outputs_file_path = text_outputs_file_path
+        self.rouge_outputs_file_path = rouge_outputs_file_path
+        self.novelty_outputs_file_path = novelty_outputs_file_path
+
         self.model, self.tokenizer = self.load_model_and_tokenizer()
         self.rouge = datasets.load_metric("rouge")
 
@@ -34,26 +61,19 @@ class PostMetrics:
             data_files["test"] = dataset_test_csv_file_path
             self.test_data = datasets.load_dataset("csv", data_files=data_files)
 
-        self.test_data = self.test_data.select(range(16))
+        # self.test_data = self.test_data.select(range(16))
 
         self.test_data = self.test_data.map(
             self.preprocess_function,
             batched=True,
-            # num_proc=self.num_workers,
+            remove_columns=list(
+                set(self.test_data.column_names) - set([self.source_column_name, self.target_column_name])),
         )
 
-    @staticmethod
-    def lower_tr(text):
-        text = re.sub(r'İ', 'i', text)
-        return re.sub(r'I', 'ı', text).lower().strip()
-
     def preprocess_function(self, examples):
-        inputs = examples[self.source_column_name]
-        targets = examples[self.target_column_name]
-
         if self.do_tr_lowercase:
-            examples[self.source_column_name] = [self.lower_tr(inp) for inp in inputs]
-            examples[self.target_column_name] = [self.lower_tr(trg) for trg in targets]
+            examples[self.source_column_name] = [lower_tr(inp) for inp in examples[self.source_column_name]]
+            examples[self.target_column_name] = [lower_tr(trg) for trg in examples[self.target_column_name]]
 
         return examples
 
@@ -86,24 +106,26 @@ class PostMetrics:
         return model, tokenizer
 
     def generate_beam_summary(self, batch):
-        inputs = self.tokenizer(batch[self.source_column_name], padding="max_length", truncation=True,
-                                max_length=self.max_source_len,
-                                return_tensors="pt")
+        tokenizer = self.tokenizer
+        inputs = batch[self.source_column_name]
+        inputs = [self.prefix + inp for inp in inputs]
+        model_inputs = tokenizer(inputs, max_length=self.max_source_len, padding=False, truncation=True,
+                                 return_tensors="pt")
 
         if self.use_cuda:
-            inputs.input_ids = inputs.input_ids.to("cuda")
-            inputs.attention_mask = inputs.attention_mask.to("cuda")
+            model_inputs.input_ids = model_inputs.input_ids.to("cuda")
+            model_inputs.attention_mask = model_inputs.attention_mask.to("cuda")
 
-        beam_output = self.model.generate(
-            inputs.input_ids,
-            attention_mask=inputs.attention_mask,
+        output = self.model.generate(
+            model_inputs.input_ids,
+            attention_mask=model_inputs.attention_mask,
             max_length=self.max_generation_len,
             num_beams=self.beam_size,
             no_repeat_ngram_size=self.ngram_blocking_size,
-            early_stopping=True
+            early_stopping=self.early_stopping
         )
 
-        batch["predictions"] = self.tokenizer.batch_decode(beam_output, skip_special_tokens=True)
+        batch["predictions"] = self.tokenizer.batch_decode(output, skip_special_tokens=True)
 
         return batch
 
@@ -111,8 +133,7 @@ class PostMetrics:
         rouge_output = self.rouge.compute(predictions=predictions, references=references)
         return rouge_output
 
-    @staticmethod
-    def calculate_novelty_ngram_ratio(sources, references, predictions, ngram_size):
+    def calculate_novelty_ngram_ratio(self, sources, references, predictions, ngram_size):
         prediction_novelty_ratios = []
         reference_novelty_ratios = []
 
@@ -139,26 +160,60 @@ class PostMetrics:
 
         return {"unigram": unigram_results, "bigram": bigram_results, "trigram": trigram_results}
 
-    def calculate_metrics(self, batch_size, write_results=True, text_outputs_file_path="text_outputs.csv",
-                          rouge_outputs_file_path="rouge_output.json", novely_outputs_file_path="novely_outputs.json"):
-        results = self.test_data.map(self.generate_beam_summary, batched=True, batch_size=batch_size)
+    def calculate_metrics(self):
+        results = self.test_data.map(self.generate_beam_summary, batched=True, batch_size=self.batch_size)
         rouge_output = self.calculate_rouge(results[self.target_column_name], results["predictions"])
         novelty_ratios = self.calculate_novelty_ngram_ratios(results[self.source_column_name],
                                                              results[self.target_column_name], results["predictions"])
 
-        if write_results:
+        if self.write_results:
             df = pd.DataFrame({"source": results[self.source_column_name], "target": results[self.target_column_name],
                                "predictions": results["predictions"]})
-            df.to_csv(text_outputs_file_path)
+            df.to_csv(self.text_outputs_file_path)
 
-            with open(rouge_outputs_file_path, 'w') as fp:
+            with open(self.rouge_outputs_file_path, 'w') as fp:
                 json.dump(rouge_output, fp)
 
-            with open(novely_outputs_file_path, 'w') as fp:
+            with open(self.novelty_outputs_file_path, 'w') as fp:
                 json.dump(novelty_ratios, fp)
 
 
 if __name__ == "__main__":
-    post_metrics = PostMetrics("checkpoint_example", num_workers=4, dataset_name="mlsum", dataset_version="tu",
-                               source_column_name="text", target_column_name="summary")
-    post_metrics.calculate_metrics(batch_size=2)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_name_or_path", default="checkpoint_example", type=str)
+    parser.add_argument("--dataset_name", default="mlsum", type=str)
+    parser.add_argument("--dataset_version", default="tu", type=str)
+    parser.add_argument("--dataset_test_csv_file_path", default=None, type=str)
+    parser.add_argument("--do_tr_lowercase", default=True, type=str2bool)
+    parser.add_argument("--source_column_name", default="text", type=str)
+    parser.add_argument("--target_column_name", default="summary", type=str)
+    parser.add_argument("--prefix", default="summary: ", type=str)
+    parser.add_argument("--max_source_len", default=768, type=int)
+    parser.add_argument("--max_generation_len", default=120, type=int)
+    parser.add_argument("--beam_size", default=4, type=int)
+    parser.add_argument("--ngram_blocking_size", default=3, type=int)
+    parser.add_argument("--early_stopping", default=True, type=str2bool)
+    parser.add_argument("--use_cuda", default=False, type=str2bool)
+    parser.add_argument("--write_results", default=True, type=str2bool)
+    parser.add_argument("--text_outputs_file_path", default="text_outputs.csv", type=str)
+    parser.add_argument("--rouge_outputs_file_path", default="rouge_outputs.json", type=str)
+    parser.add_argument("--novely_outputs_file_path", default="novely_outputs.json", type=str)
+    parser.add_argument("--batch_size", default=2, type=int)
+
+    args, unknown = parser.parse_known_args()
+    print(args)
+
+    post_metrics = PostMetrics(args.model_name_or_path, dataset_name=args.dataset_name,
+                               dataset_version=args.dataset_version,
+                               dataset_test_csv_file_path=args.dataset_test_csv_file_path,
+                               do_tr_lowercase=args.do_tr_lowercase, source_column_name=args.source_column_name,
+                               target_column_name=args.target_column_name, prefix=args.prefix,
+                               max_source_len=args.max_source_len,
+                               max_generation_len=args.max_generation_len, beam_size=args.beam_size,
+                               ngram_blocking_size=args.ngram_blocking_size, use_cuda=args.use_cuda,
+                               batch_size=args.batch_size, write_results=args.write_results,
+                               text_outputs_file_path=args.text_outputs_file_path,
+                               rouge_outputs_file_path=args.rouge_outputs_file_path,
+                               novelty_outputs_file_path=args.novely_outputs_file_path)
+
+    post_metrics.calculate_metrics()
