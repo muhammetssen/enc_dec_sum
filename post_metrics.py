@@ -60,15 +60,16 @@ class PostMetrics:
         else:
             data_files = dict()
             data_files["test"] = dataset_test_csv_file_path
-            self.test_data = datasets.load_dataset("csv", data_files=data_files)
+            self.test_data = datasets.load_dataset("csv", data_files=data_files, split="test")
 
         # self.test_data = self.test_data.select(range(16))
 
+        columns_to_remove = list(
+            set(self.test_data.column_names) - set([self.source_column_name, self.target_column_name]))
         self.test_data = self.test_data.map(
             self.preprocess_function,
             batched=True,
-            remove_columns=list(
-                set(self.test_data.column_names) - set([self.source_column_name, self.target_column_name])),
+            remove_columns=columns_to_remove,
         )
 
     def preprocess_function(self, examples):
