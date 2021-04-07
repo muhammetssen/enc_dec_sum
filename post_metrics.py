@@ -111,7 +111,7 @@ class PostMetrics:
         tokenizer = self.tokenizer
         inputs = batch[self.source_column_name]
         inputs = [self.source_prefix + inp for inp in inputs]
-        model_inputs = tokenizer(inputs, max_length=self.max_source_length, padding=False, truncation=True,
+        model_inputs = tokenizer(inputs, max_length=self.max_source_length, padding="max_length", truncation=True,
                                  return_tensors="pt")
 
         if self.use_cuda:
