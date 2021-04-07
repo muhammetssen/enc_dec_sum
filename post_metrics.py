@@ -28,7 +28,8 @@ def str2bool(v):
 class PostMetrics:
     def __init__(self, model_name_or_path, dataset_name=None, dataset_version=None,
                  dataset_test_csv_file_path=None, do_tr_lowercase=True, source_column_name="content",
-                 target_column_name="abstract", prefix=None, max_source_len=768, max_generation_len=120, beam_size=None,
+                 target_column_name="abstract", source_prefix=None, max_source_length=768, max_target_length=120,
+                 beam_size=None,
                  ngram_blocking_size=None, early_stopping=None, use_cuda=False, batch_size=2, write_results=True,
                  text_outputs_file_path="text_outputs.csv",
                  rouge_outputs_file_path="rouge_outputs.json",
@@ -37,9 +38,9 @@ class PostMetrics:
         self.do_tr_lowercase = do_tr_lowercase
         self.source_column_name = source_column_name
         self.target_column_name = target_column_name
-        self.prefix = prefix
-        self.max_source_len = max_source_len
-        self.max_generation_len = max_generation_len
+        self.source_prefix = source_prefix
+        self.max_source_length = max_source_length
+        self.max_target_length = max_target_length
         self.beam_size = beam_size
         self.early_stopping = early_stopping
         self.ngram_blocking_size = ngram_blocking_size
@@ -108,8 +109,8 @@ class PostMetrics:
     def generate_beam_summary(self, batch):
         tokenizer = self.tokenizer
         inputs = batch[self.source_column_name]
-        inputs = [self.prefix + inp for inp in inputs]
-        model_inputs = tokenizer(inputs, max_length=self.max_source_len, padding=False, truncation=True,
+        inputs = [self.source_prefix + inp for inp in inputs]
+        model_inputs = tokenizer(inputs, max_length=self.max_source_length, padding=False, truncation=True,
                                  return_tensors="pt")
 
         if self.use_cuda:
@@ -119,7 +120,7 @@ class PostMetrics:
         output = self.model.generate(
             model_inputs.input_ids,
             attention_mask=model_inputs.attention_mask,
-            max_length=self.max_generation_len,
+            max_length=self.max_target_length,
             num_beams=self.beam_size,
             no_repeat_ngram_size=self.ngram_blocking_size,
             early_stopping=self.early_stopping
@@ -180,16 +181,16 @@ class PostMetrics:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name_or_path", default="checkpoint_example", type=str)
-    parser.add_argument("--dataset_name", default="mlsum", type=str)
-    parser.add_argument("--dataset_version", default="tu", type=str)
+    parser.add_argument("--model_name_or_path", type=str)
+    parser.add_argument("--dataset_name", default=None, type=str)
+    parser.add_argument("--dataset_version", default=None, type=str)
     parser.add_argument("--dataset_test_csv_file_path", default=None, type=str)
     parser.add_argument("--do_tr_lowercase", default=True, type=str2bool)
     parser.add_argument("--source_column_name", default="text", type=str)
     parser.add_argument("--target_column_name", default="summary", type=str)
-    parser.add_argument("--prefix", default="summary: ", type=str)
-    parser.add_argument("--max_source_len", default=768, type=int)
-    parser.add_argument("--max_generation_len", default=120, type=int)
+    parser.add_argument("--source_prefix", default="summary: ", type=str)
+    parser.add_argument("--max_source_length", default=768, type=int)
+    parser.add_argument("--max_target_length", default=120, type=int)
     parser.add_argument("--beam_size", default=4, type=int)
     parser.add_argument("--ngram_blocking_size", default=3, type=int)
     parser.add_argument("--early_stopping", default=True, type=str2bool)
@@ -207,9 +208,9 @@ if __name__ == "__main__":
                                dataset_version=args.dataset_version,
                                dataset_test_csv_file_path=args.dataset_test_csv_file_path,
                                do_tr_lowercase=args.do_tr_lowercase, source_column_name=args.source_column_name,
-                               target_column_name=args.target_column_name, prefix=args.prefix,
-                               max_source_len=args.max_source_len,
-                               max_generation_len=args.max_generation_len, beam_size=args.beam_size,
+                               target_column_name=args.target_column_name, source_prefix=args.source_prefix,
+                               max_source_length=args.max_source_length,
+                               max_target_length=args.max_target_length, beam_size=args.beam_size,
                                ngram_blocking_size=args.ngram_blocking_size, use_cuda=args.use_cuda,
                                batch_size=args.batch_size, write_results=args.write_results,
                                text_outputs_file_path=args.text_outputs_file_path,
