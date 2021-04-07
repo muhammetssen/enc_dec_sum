@@ -51,9 +51,12 @@ class PostMetrics:
         self.rouge_outputs_file_path = rouge_outputs_file_path
         self.novelty_outputs_file_path = novelty_outputs_file_path
 
-        self.model, self.tokenizer = self.load_model_and_tokenizer()
         self.rouge = datasets.load_metric("rouge")
+        self.model, self.tokenizer = self.load_model_and_tokenizer()
 
+        if self.use_cuda:
+            self.model.to("cuda")
+            
         assert dataset_name is not None or dataset_test_csv_file_path is not None, "Either dataset name or file path should be given."
         if dataset_name is not None:
             self.test_data = datasets.load_dataset(dataset_name, dataset_version, split="test")
