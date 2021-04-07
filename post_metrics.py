@@ -56,7 +56,7 @@ class PostMetrics:
 
         if self.use_cuda:
             self.model.to("cuda")
-            
+
         assert dataset_name is not None or dataset_test_csv_file_path is not None, "Either dataset name or file path should be given."
         if dataset_name is not None:
             self.test_data = datasets.load_dataset(dataset_name, dataset_version, split="test")
@@ -110,7 +110,7 @@ class PostMetrics:
 
         return model, tokenizer
 
-    def generate_beam_summary(self, batch):
+    def generate_summary(self, batch):
         tokenizer = self.tokenizer
         inputs = batch[self.source_column_name]
         inputs = [self.source_prefix + inp for inp in inputs]
@@ -166,7 +166,7 @@ class PostMetrics:
         return {"unigram": unigram_results, "bigram": bigram_results, "trigram": trigram_results}
 
     def calculate_metrics(self):
-        results = self.test_data.map(self.generate_beam_summary, batched=True, batch_size=self.batch_size)
+        results = self.test_data.map(self.generate_summary, batched=True, batch_size=self.batch_size)
         rouge_output = self.calculate_rouge(results[self.target_column_name], results["predictions"])
         novelty_ratios = self.calculate_novelty_ngram_ratios(results[self.source_column_name],
                                                              results[self.target_column_name], results["predictions"])
