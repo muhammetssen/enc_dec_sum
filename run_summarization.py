@@ -457,6 +457,10 @@ def main():
         with tokenizer.as_target_tokenizer():
             labels = tokenizer(targets, max_length=max_target_length, padding=padding, truncation=True)
 
+        if "bert" in model_args.model_name_or_path:
+            model_inputs["decoder_input_ids"] = labels['input_ids']
+            model_inputs["decoder_attention_mask"] = labels['attention_mask']
+
         # If we are padding here, replace all tokenizer.pad_token_id in the labels by -100 when we want to ignore
         # padding in the loss.
         if padding == "max_length" and data_args.ignore_pad_token_for_loss:
@@ -465,6 +469,7 @@ def main():
             ]
 
         model_inputs["labels"] = labels["input_ids"]
+
         return model_inputs
 
     if training_args.do_train:
