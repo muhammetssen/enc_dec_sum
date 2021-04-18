@@ -62,7 +62,7 @@ print("Combined dataset train size: {} val size: {} test size: {}".format(combin
 combined_train_df = combined_train_df.sample(frac=1).reset_index(drop=True)
 combined_val_df = combined_val_df.sample(frac=1).reset_index(drop=True)
 combined_test_df = combined_test_df.sample(frac=1).reset_index(drop=True)
-print("Dataset suffled.")
+print("Dataset shuffled.")
 
 combined_train_df.to_csv( "data/combined_tr_raw/train.csv", index=False)
 combined_val_df.to_csv( "data/combined_tr_raw/validation.csv", index=False)
