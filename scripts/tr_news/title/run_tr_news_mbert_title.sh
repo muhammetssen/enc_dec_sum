@@ -43,9 +43,9 @@ $HOME_DIR/venv/bin/python  $HOME_DIR/run_summarization.py \
 --do_tr_lowercase \
 --preprocessing_num_workers 10 \
 --dataloader_num_workers 2 \
---gradient_accumulation_steps 1 \
---per_gpu_train_batch_size 32 \
---per_gpu_eval_batch_size 32 \
+--gradient_accumulation_steps 2 \
+--per_gpu_train_batch_size 16 \
+--per_gpu_eval_batch_size 16 \
 --num_train_epochs 10 \
 --logging_steps 500 \
 --warmup_steps 1000 

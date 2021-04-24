@@ -14,7 +14,7 @@ echo "SLURM_NODELIST $SLURM_NODELIST"
 echo "NUMBER OF CORES $SLURM_NTASKS"
 echo "CUDA DEVICES $CUDA_VISIBLE_DEVICES"
 
-RUN_NAME=tr_news_mbart_title
+RUN_NAME=ml_sum_mbart_title
 HOME_DIR=/cta/users/bbaykara/code/enc_dec_sum
 OUTPUTS_DIR=$HOME_DIR/outputs/$RUN_NAME
 
@@ -30,14 +30,13 @@ $HOME_DIR/venv/bin/python  $HOME_DIR/run_summarization.py \
 --max_target_length 64 \
 --save_strategy epoch \
 --evaluation_strategy epoch \
---train_file $HOME_DIR/data/tr_news_raw/train.csv \
---validation_file $HOME_DIR/data/tr_news_raw/validation.csv \
---test_file $HOME_DIR/data/tr_news_raw/test.csv \
+--dataset_name mlsum \
+--dataset_config_name tu \
 --output_dir $OUTPUTS_DIR \
 --logging_dir $OUTPUTS_DIR/logs \
 --overwrite_output_dir \
 --predict_with_generate \
---text_column abstract \
+--text_column summary \
 --summary_column title \
 --do_tr_lowercase \
 --preprocessing_num_workers 10 \

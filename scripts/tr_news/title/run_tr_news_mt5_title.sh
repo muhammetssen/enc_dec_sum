@@ -38,8 +38,8 @@ $HOME_DIR/venv/bin/python  $HOME_DIR/run_summarization.py \
 --logging_dir $OUTPUTS_DIR/logs \
 --overwrite_output_dir \
 --predict_with_generate \
---text_column content \
---summary_column abstract \
+--text_column abstract \
+--summary_column title \
 --do_tr_lowercase \
 --preprocessing_num_workers 10 \
 --dataloader_num_workers 2 \

@@ -1,51 +1,52 @@
 #!/bin/bash
-#SBATCH -p akya-cuda
-#SBATCH -A bbaykara
-#SBATCH -J mbert_ml_sum
+#SBATCH -p long
+#SBATCH -J train_t
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH -c 40
-#SBATCH --gres=gpu:4
+#SBATCH -c 10
+#SBATCH --gres=gpu:1
+#SBATCH --constraint=v100
 #SBATCH --time=7-00:00:00
-#SBATCH --mail-type=ALL
 
-module load centos7.3/lib/cuda/10.1
+module load cuda-10.2.89-gcc-10.2.0-dgnsc3t
 
 echo "SLURM_NODELIST $SLURM_NODELIST"
 echo "NUMBER OF CORES $SLURM_NTASKS"
 echo "CUDA DEVICES $CUDA_VISIBLE_DEVICES"
 
-RUN_NAME=ml_sum_mbert_summary
-OUTPUTS_DIR=/truba/home/bbaykara/code/enc_dec_sum/outputs/$RUN_NAME
+RUN_NAME=ml_sum_mt5_title
+HOME_DIR=/cta/users/bbaykara/code/enc_dec_sum
+OUTPUTS_DIR=$HOME_DIR/outputs/$RUN_NAME
 
-/truba/home/bbaykara/code/enc_dec_sum/venv/bin/python -m torch.distributed.launch --nproc_per_node=4 /truba/home/bbaykara/code/enc_dec_sum/run_summarization.py \
---model_name_or_path bert-base-multilingual-uncased \
---pad_to_max_length True \
+$HOME_DIR/venv/bin/python  $HOME_DIR/run_summarization.py \
+--model_name_or_path google/mt5-base \
 --do_train \
 --do_eval \
 --early_stopping_patience 2 \
 --do_predict \
 --load_best_model_at_end \
 --num_beams 4 \
---max_source_length 512 \
---max_target_length 128 \
+--max_source_length 256 \
+--max_target_length 64 \
 --save_strategy epoch \
 --evaluation_strategy epoch \
 --dataset_name mlsum \
 --dataset_config_name tu \
+--source_prefix "summarize: " \
 --output_dir $OUTPUTS_DIR \
 --logging_dir $OUTPUTS_DIR/logs \
 --overwrite_output_dir \
 --predict_with_generate \
---text_column text \
---summary_column summary \
+--text_column summary \
+--summary_column title \
 --do_tr_lowercase \
---preprocessing_num_workers 20 \
+--preprocessing_num_workers 10 \
 --dataloader_num_workers 2 \
---gradient_accumulation_steps 1 \
+--gradient_accumulation_steps 4 \
 --per_gpu_train_batch_size 8 \
 --per_gpu_eval_batch_size 8 \
 --num_train_epochs 10 \
 --logging_steps 500 \
+--learning_rate 1e-3 \
 --warmup_steps 1000 \
---sharded_ddp simple 
+--adafactor
