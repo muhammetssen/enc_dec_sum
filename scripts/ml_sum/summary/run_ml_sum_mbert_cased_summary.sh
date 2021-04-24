@@ -15,11 +15,11 @@ echo "SLURM_NODELIST $SLURM_NODELIST"
 echo "NUMBER OF CORES $SLURM_NTASKS"
 echo "CUDA DEVICES $CUDA_VISIBLE_DEVICES"
 
-RUN_NAME=ml_sum_mbert_summary
+RUN_NAME=ml_sum_mbert_cased_summary
 OUTPUTS_DIR=/truba/home/bbaykara/code/enc_dec_sum/outputs/$RUN_NAME
 
 /truba/home/bbaykara/code/enc_dec_sum/venv/bin/python -m torch.distributed.launch --nproc_per_node=4 /truba/home/bbaykara/code/enc_dec_sum/run_summarization.py \
---model_name_or_path bert-base-multilingual-uncased \
+--model_name_or_path bert-base-multilingual-cased \
 --pad_to_max_length True \
 --do_train \
 --do_eval \
