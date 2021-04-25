@@ -6,7 +6,7 @@ import datasets
 import numpy as np
 import pandas as pd
 from nltk import ngrams
-from transformers import AutoTokenizer, AutoConfig, EncoderDecoderModel, AutoModelForSeq2SeqLM
+from transformers import AutoTokenizer, AutoConfig, EncoderDecoderModel, AutoModelForSeq2SeqLM, MBartTokenizerFast
 
 
 def lower_tr(text):
@@ -65,7 +65,7 @@ class PostMetrics:
             data_files["test"] = dataset_test_csv_file_path
             self.test_data = datasets.load_dataset("csv", data_files=data_files, split="test")
 
-        # self.test_data = self.test_data.select(range(16))
+        self.test_data = self.test_data.select(range(16))
 
         columns_to_remove = list(
             set(self.test_data.column_names) - set([self.source_column_name, self.target_column_name]))
@@ -84,15 +84,28 @@ class PostMetrics:
 
     def load_model_and_tokenizer(self):
         model_name_or_path = self.model_name_or_path
-        config = AutoConfig.from_pretrained(model_name_or_path)
-        tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, use_fast=True)
+        config = AutoConfig.from_pretrained(
+            model_name_or_path
+        )
+        if "mbart" in model_name_or_path:
+            tokenizer = MBartTokenizerFast.from_pretrained(
+                model_name_or_path,
+                src_lang="tr_TR",
+                tgt_lang="tr_TR")
+        else:
+            tokenizer = AutoTokenizer.from_pretrained(
+                model_name_or_path,
+                use_fast=True,
+                strip_accents=False,
+                lowercase=False
+            )
 
         if "bert" in model_name_or_path:
             tokenizer.bos_token = tokenizer.cls_token
             tokenizer.eos_token = tokenizer.sep_token
 
         if "bert" in model_name_or_path:
-            model = EncoderDecoderModel.from_encoder_decoder_pretrained(model_name_or_path, model_name_or_path)
+            model = EncoderDecoderModel.from_pretrained(model_name_or_path)
             # set special tokens
             model.config.decoder_start_token_id = tokenizer.bos_token_id
             model.config.eos_token_id = tokenizer.eos_token_id
@@ -101,12 +114,18 @@ class PostMetrics:
             # sensible parameters for beam search
             model.config.vocab_size = model.config.decoder.vocab_size
         else:
-            model = AutoModelForSeq2SeqLM.from_pretrained(model_name_or_path, config=config)
+            model = AutoModelForSeq2SeqLM.from_pretrained(
+                model_name_or_path,
+                config=config,
+            )
 
         if "mbart" in model_name_or_path:
             model.config.decoder_start_token_id = tokenizer.bos_token_id
             model.config.eos_token_id = tokenizer.eos_token_id
             model.config.pad_token_id = tokenizer.pad_token_id
+
+        if model.config.decoder_start_token_id is None:
+            raise ValueError("Make sure that `config.decoder_start_token_id` is correctly defined")
 
         return model, tokenizer
 
@@ -136,6 +155,11 @@ class PostMetrics:
 
     def calculate_rouge(self, references, predictions):
         rouge_output = self.rouge.compute(predictions=predictions, references=references)
+        rouge_output["R1_F_avg"] = rouge_output["rouge1"].mid.fmeasure
+        rouge_output["R2_F_avg"] = rouge_output["rouge2"].mid.fmeasure
+        rouge_output["RL_F_avg"] = rouge_output["rougeL"].mid.fmeasure
+        rouge_output["RLsum_F_avg"] = rouge_output["rougeLsum"].mid.fmeasure
+
         return rouge_output
 
     def calculate_novelty_ngram_ratio(self, sources, references, predictions, ngram_size):
@@ -202,7 +226,7 @@ if __name__ == "__main__":
     parser.add_argument("--write_results", default=True, type=str2bool)
     parser.add_argument("--text_outputs_file_path", default="text_outputs.csv", type=str)
     parser.add_argument("--rouge_outputs_file_path", default="rouge_outputs.json", type=str)
-    parser.add_argument("--novely_outputs_file_path", default="novely_outputs.json", type=str)
+    parser.add_argument("--novelty_outputs_file_path", default="novelty_outputs.json", type=str)
     parser.add_argument("--batch_size", default=2, type=int)
 
     args, unknown = parser.parse_known_args()
@@ -219,6 +243,6 @@ if __name__ == "__main__":
                                batch_size=args.batch_size, write_results=args.write_results,
                                text_outputs_file_path=args.text_outputs_file_path,
                                rouge_outputs_file_path=args.rouge_outputs_file_path,
-                               novelty_outputs_file_path=args.novely_outputs_file_path)
+                               novelty_outputs_file_path=args.novelty_outputs_file_path)
 
     post_metrics.calculate_metrics()
