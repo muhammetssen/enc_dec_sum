@@ -38,7 +38,7 @@ $HOME_DIR/venv/bin/python  $HOME_DIR/run_summarization.py \
 --logging_dir $OUTPUTS_DIR/logs \
 --overwrite_output_dir \
 --predict_with_generate \
---text_column abstract \
+--text_column summary \
 --summary_column title \
 --do_tr_lowercase \
 --preprocessing_num_workers 10 \
