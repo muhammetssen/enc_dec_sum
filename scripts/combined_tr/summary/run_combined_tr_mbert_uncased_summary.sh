@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH -p akya-cuda
+#SBATCH -p barbun-cuda
 #SBATCH -A bbaykara
-#SBATCH -J mbert_combined_tr
+#SBATCH -J mbert_uncased_combined_tr
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH -c 40
-#SBATCH --gres=gpu:4
+#SBATCH -c 20
+#SBATCH --gres=gpu:2
 #SBATCH --time=7-00:00:00
 #SBATCH --mail-type=ALL
 
@@ -15,7 +15,7 @@ echo "SLURM_NODELIST $SLURM_NODELIST"
 echo "NUMBER OF CORES $SLURM_NTASKS"
 echo "CUDA DEVICES $CUDA_VISIBLE_DEVICES"
 
-RUN_NAME=combined_tr_mbert_summary
+RUN_NAME=combined_tr_mbert_uncased_summary
 OUTPUTS_DIR=/truba/home/bbaykara/code/enc_dec_sum/outputs/$RUN_NAME
 
 /truba/home/bbaykara/code/enc_dec_sum/venv/bin/python -m torch.distributed.launch --nproc_per_node=4 /truba/home/bbaykara/code/enc_dec_sum/run_summarization.py \
