@@ -65,7 +65,7 @@ class PostMetrics:
             data_files["test"] = dataset_test_csv_file_path
             self.test_data = datasets.load_dataset("csv", data_files=data_files, split="test")
 
-        self.test_data = self.test_data.select(range(16))
+        # self.test_data = self.test_data.select(range(16))
 
         columns_to_remove = list(
             set(self.test_data.column_names) - set([self.source_column_name, self.target_column_name]))
