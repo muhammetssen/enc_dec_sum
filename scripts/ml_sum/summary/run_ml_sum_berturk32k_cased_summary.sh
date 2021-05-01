@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH -p akya-cuda
 #SBATCH -A bbaykara
-#SBATCH -J mbert_cased_combined_tr
+#SBATCH -J berturk_ml_sum
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH -c 40
 #SBATCH --gres=gpu:4
-#SBATCH --time=7-00:00:00
+#SBATCH --time=3-00:00:00
 #SBATCH --mail-type=ALL
 
 module load centos7.3/lib/cuda/10.1
@@ -15,11 +15,11 @@ echo "SLURM_NODELIST $SLURM_NODELIST"
 echo "NUMBER OF CORES $SLURM_NTASKS"
 echo "CUDA DEVICES $CUDA_VISIBLE_DEVICES"
 
-RUN_NAME=combined_tr_mbert_cased_summary
+RUN_NAME=ml_sum_berturk32k_cased_summary
 OUTPUTS_DIR=/truba/home/bbaykara/code/enc_dec_sum/outputs/$RUN_NAME
 
 /truba/home/bbaykara/code/enc_dec_sum/venv/bin/python -m torch.distributed.launch --nproc_per_node=4 /truba/home/bbaykara/code/enc_dec_sum/run_summarization.py \
---model_name_or_path bert-base-multilingual-cased \
+--model_name_or_path dbmdz/bert-base-turkish-cased \
 --pad_to_max_length True \
 --do_train \
 --do_eval \
@@ -31,9 +31,8 @@ OUTPUTS_DIR=/truba/home/bbaykara/code/enc_dec_sum/outputs/$RUN_NAME
 --max_target_length 128 \
 --save_strategy epoch \
 --evaluation_strategy epoch \
---train_file /truba/home/bbaykara/code/enc_dec_sum/data/combined_tr_raw/train.csv \
---validation_file /truba/home/bbaykara/code/enc_dec_sum/data/combined_tr_raw/validation.csv \
---test_file /truba/home/bbaykara/code/enc_dec_sum/data/combined_tr_raw/test.csv \
+--dataset_name mlsum \
+--dataset_config_name tu \
 --output_dir $OUTPUTS_DIR \
 --logging_dir $OUTPUTS_DIR/logs \
 --overwrite_output_dir \

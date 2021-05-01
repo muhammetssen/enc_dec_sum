@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH -p barbun-cuda
+#SBATCH -p akya-cuda
 #SBATCH -A bbaykara
 #SBATCH -J berturk_combined_tr
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH -c 20
-#SBATCH --gres=gpu:2
+#SBATCH -c 40
+#SBATCH --gres=gpu:4
 #SBATCH --time=7-00:00:00
 #SBATCH --mail-type=ALL
 
