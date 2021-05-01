@@ -57,7 +57,7 @@ class PostMetrics:
         self.model, self.tokenizer = self.load_model_and_tokenizer()
 
         if self.use_cuda:
-            self.model.to("cuda")
+            self.model = self.model.to("cuda")
 
         assert dataset_name is not None or dataset_test_csv_file_path is not None, "Either dataset name or file path should be given."
         if dataset_name is not None:
