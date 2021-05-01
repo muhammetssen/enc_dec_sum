@@ -33,7 +33,8 @@ class PostMetrics:
                  ngram_blocking_size=None, early_stopping=None, use_cuda=False, batch_size=2, write_results=True,
                  text_outputs_file_path="text_outputs.csv",
                  rouge_outputs_file_path="rouge_outputs.json",
-                 novelty_outputs_file_path="novelty_outputs.json"):
+                 novelty_outputs_file_path="novelty_outputs.json",
+                 use_stemmer_in_rouge=True):
         self.model_name_or_path = model_name_or_path
         self.do_tr_lowercase = do_tr_lowercase
         self.source_column_name = source_column_name
@@ -50,6 +51,7 @@ class PostMetrics:
         self.text_outputs_file_path = text_outputs_file_path
         self.rouge_outputs_file_path = rouge_outputs_file_path
         self.novelty_outputs_file_path = novelty_outputs_file_path
+        self.use_stemmer_in_rouge = use_stemmer_in_rouge
 
         self.rouge = datasets.load_metric("rouge")
         self.model, self.tokenizer = self.load_model_and_tokenizer()
@@ -153,8 +155,8 @@ class PostMetrics:
 
         return batch
 
-    def calculate_rouge(self, references, predictions):
-        rouge_output = self.rouge.compute(predictions=predictions, references=references)
+    def calculate_rouge(self, references, predictions, use_stemmer):
+        rouge_output = self.rouge.compute(predictions=predictions, references=references, use_stemmer=use_stemmer)
         rouge_output["R1_F_avg"] = rouge_output["rouge1"].mid.fmeasure
         rouge_output["R2_F_avg"] = rouge_output["rouge2"].mid.fmeasure
         rouge_output["RL_F_avg"] = rouge_output["rougeL"].mid.fmeasure
@@ -191,7 +193,8 @@ class PostMetrics:
 
     def calculate_metrics(self):
         results = self.test_data.map(self.generate_summary, batched=True, batch_size=self.batch_size)
-        rouge_output = self.calculate_rouge(results[self.target_column_name], results["predictions"])
+        rouge_output = self.calculate_rouge(results[self.target_column_name], results["predictions"],
+                                            self.use_stemmer_in_rouge)
         novelty_ratios = self.calculate_novelty_ngram_ratios(results[self.source_column_name],
                                                              results[self.target_column_name], results["predictions"])
 
@@ -228,6 +231,7 @@ if __name__ == "__main__":
     parser.add_argument("--rouge_outputs_file_path", default="rouge_outputs.json", type=str)
     parser.add_argument("--novelty_outputs_file_path", default="novelty_outputs.json", type=str)
     parser.add_argument("--batch_size", default=2, type=int)
+    parser.add_argument("--use_stemmer_in_rouge", default=True, type=str2bool)
 
     args, unknown = parser.parse_known_args()
     print(args)
