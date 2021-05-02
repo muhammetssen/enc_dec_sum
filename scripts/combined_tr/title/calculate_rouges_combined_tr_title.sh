@@ -35,7 +35,7 @@ do
     --rouge_outputs_file_path $HOME_DIR/$RESULTS_FOLDER/$DATASET_NAME/$TASK_NAME/$MODEL_NAME/rouge_outputs.json \
     --novelty_outputs_file_path $HOME_DIR/$RESULTS_FOLDER/$DATASET_NAME/$TASK_NAME/$MODEL_NAME/novely_outputs.json \
     --do_tr_lowercase True \
-    --source_column_name abstract \
+    --source_column_name summary \
     --target_column_name title \
     --source_prefix "summarize: " \
     --num_beams 4 \
@@ -56,7 +56,7 @@ do
     --rouge_outputs_file_path $HOME_DIR/$RESULTS_FOLDER/$DATASET_NAME/$TASK_NAME/$MODEL_NAME/rouge_outputs.json \
     --novelty_outputs_file_path $HOME_DIR/$RESULTS_FOLDER/$DATASET_NAME/$TASK_NAME/$MODEL_NAME/novely_outputs.json \
     --do_tr_lowercase True \
-    --source_column_name abstract \
+    --source_column_name summary \
     --target_column_name title \
     --source_prefix "" \
     --num_beams 4 \
@@ -77,7 +77,7 @@ do
     --rouge_outputs_file_path $HOME_DIR/$RESULTS_FOLDER/$DATASET_NAME/$TASK_NAME/$MODEL_NAME/rouge_outputs.json \
     --novelty_outputs_file_path $HOME_DIR/$RESULTS_FOLDER/$DATASET_NAME/$TASK_NAME/$MODEL_NAME/novely_outputs.json \
     --do_tr_lowercase True \
-    --source_column_name abstract \
+    --source_column_name summary \
     --target_column_name title \
     --source_prefix "" \
     --num_beams 4 \
