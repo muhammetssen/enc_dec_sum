@@ -198,6 +198,9 @@ class PostMetrics:
         novelty_ratios = self.calculate_novelty_ngram_ratios(results[self.source_column_name],
                                                              results[self.target_column_name], results["predictions"])
 
+        print(rouge_output)
+        print(novelty_ratios)
+
         if self.write_results:
             df = pd.DataFrame({"source": results[self.source_column_name], "target": results[self.target_column_name],
                                "predictions": results["predictions"]})
