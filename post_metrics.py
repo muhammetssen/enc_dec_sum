@@ -67,7 +67,7 @@ class PostMetrics:
             data_files["test"] = dataset_test_csv_file_path
             self.test_data = datasets.load_dataset("csv", data_files=data_files, split="test")
 
-        # self.test_data = self.test_data.select(range(16))
+        # self.test_data = self.test_data.select(range(8))
 
         columns_to_remove = list(
             set(self.test_data.column_names) - set([self.source_column_name, self.target_column_name]))
@@ -250,6 +250,7 @@ if __name__ == "__main__":
                                batch_size=args.batch_size, write_results=args.write_results,
                                text_outputs_file_path=args.text_outputs_file_path,
                                rouge_outputs_file_path=args.rouge_outputs_file_path,
-                               novelty_outputs_file_path=args.novelty_outputs_file_path)
+                               novelty_outputs_file_path=args.novelty_outputs_file_path,
+                               use_stemmer_in_rouge=args.use_stemmer_in_rouge)
 
     post_metrics.calculate_metrics()

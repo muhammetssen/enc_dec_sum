@@ -46,7 +46,7 @@ do
     --max_source_length 768 \
     --max_target_length 128 \
     --batch_size 16 \
-    --use_stemmer_in_rouge=False
+    --use_stemmer_in_rouge False
   fi
   if [[ "$MODEL_NAME" == *"mbart"* ]]; then
     echo "mbart"
@@ -67,7 +67,7 @@ do
     --max_source_length 768 \
     --max_target_length 128 \
     --batch_size 16 \
-    --use_stemmer_in_rouge=False
+    --use_stemmer_in_rouge False
   fi
   if [[ "$MODEL_NAME" == *"bert"* ]]; then
     echo "bert"
@@ -88,7 +88,7 @@ do
     --max_source_length 512 \
     --max_target_length 128 \
     --batch_size 16 \
-    --use_stemmer_in_rouge=False
+    --use_stemmer_in_rouge False
   fi
 done
 
