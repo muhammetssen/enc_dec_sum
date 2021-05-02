@@ -32,4 +32,4 @@ $HOME_DIR/venv/bin/python $HOME_DIR/post_metrics.py \
 --max_source_length 768 \
 --max_target_length 128 \
 --batch_size 16 \
---use_stemmer_in_rouge=True
+--use_stemmer_in_rouge True
