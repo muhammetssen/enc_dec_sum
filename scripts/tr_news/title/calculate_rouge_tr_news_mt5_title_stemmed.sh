@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH -p long
-#SBATCH -J train_t
+#SBATCH -J inf
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH -c 10
 #SBATCH --gres=gpu:1
-#SBATCH --constraint=v100
+##SBATCH --constraint=v100
 #SBATCH --time=7-00:00:00
 
 module load cuda-10.2.89-gcc-10.2.0-dgnsc3t
@@ -31,5 +31,5 @@ $HOME_DIR/venv/bin/python $HOME_DIR/post_metrics.py \
 --use_cuda False \
 --max_source_length 768 \
 --max_target_length 128 \
---batch_size 2 \
+--batch_size 16 \
 --use_stemmer_in_rouge=True
