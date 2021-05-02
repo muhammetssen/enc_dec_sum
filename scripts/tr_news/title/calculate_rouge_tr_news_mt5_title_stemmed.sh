@@ -29,7 +29,7 @@ $HOME_DIR/venv/bin/python $HOME_DIR/post_metrics.py \
 --ngram_blocking_size 3 \
 --early_stopping True \
 --use_cuda False \
---max_source_length 768 \
---max_target_length 128 \
+--max_source_length 256 \
+--max_target_length 64 \
 --batch_size 16 \
 --use_stemmer_in_rouge True
