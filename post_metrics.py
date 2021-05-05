@@ -151,8 +151,8 @@ class PostMetrics:
             attention_mask=model_inputs.attention_mask,
             max_length=self.max_target_length,
             num_beams=self.num_beams,
-            # no_repeat_ngram_size=self.ngram_blocking_size,
-            # early_stopping=self.early_stopping
+            no_repeat_ngram_size=self.ngram_blocking_size,
+            early_stopping=self.early_stopping
         )
 
         batch["predictions"] = self.tokenizer.batch_decode(output, skip_special_tokens=True,
@@ -197,7 +197,8 @@ class PostMetrics:
         return {"unigram": unigram_results, "bigram": bigram_results, "trigram": trigram_results}
 
     def calculate_metrics(self):
-        results = self.test_data.map(self.generate_summary, batched=True, batch_size=self.batch_size, load_from_cache_file=False)
+        results = self.test_data.map(self.generate_summary, batched=True, batch_size=self.batch_size,
+                                     load_from_cache_file=False)
         rouge_output = self.calculate_rouge(results[self.target_column_name], results["predictions"],
                                             self.use_stemmer_in_rouge)
         novelty_ratios = self.calculate_novelty_ngram_ratios(results[self.source_column_name],
@@ -251,11 +252,13 @@ if __name__ == "__main__":
                                target_column_name=args.target_column_name, source_prefix=args.source_prefix,
                                max_source_length=args.max_source_length,
                                max_target_length=args.max_target_length, num_beams=args.num_beams,
+                               early_stopping=args.early_stopping,
                                ngram_blocking_size=args.ngram_blocking_size, use_cuda=args.use_cuda,
                                batch_size=args.batch_size, write_results=args.write_results,
                                text_outputs_file_path=args.text_outputs_file_path,
                                rouge_outputs_file_path=args.rouge_outputs_file_path,
                                novelty_outputs_file_path=args.novelty_outputs_file_path,
-                               use_stemmer_in_rouge=args.use_stemmer_in_rouge)
+                               use_stemmer_in_rouge=args.use_stemmer_in_rouge
+                               )
 
     post_metrics.calculate_metrics()
