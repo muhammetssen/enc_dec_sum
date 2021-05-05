@@ -6,7 +6,10 @@ import datasets
 import numpy as np
 import pandas as pd
 from nltk import ngrams
-from transformers import AutoTokenizer, AutoConfig, EncoderDecoderModel, AutoModelForSeq2SeqLM, MBartTokenizerFast
+from transformers import AutoTokenizer, AutoConfig, EncoderDecoderModel, AutoModelForSeq2SeqLM, MBartTokenizerFast, \
+    set_seed
+
+set_seed(42)
 
 
 def lower_tr(text):
@@ -29,7 +32,7 @@ class PostMetrics:
     def __init__(self, model_name_or_path, dataset_name=None, dataset_version=None,
                  dataset_test_csv_file_path=None, do_tr_lowercase=True, source_column_name="content",
                  target_column_name="abstract", source_prefix=None, max_source_length=768, max_target_length=120,
-                 beam_size=None,
+                 num_beams=None,
                  ngram_blocking_size=None, early_stopping=None, use_cuda=False, batch_size=2, write_results=True,
                  text_outputs_file_path="text_outputs.csv",
                  rouge_outputs_file_path="rouge_outputs.json",
@@ -42,7 +45,7 @@ class PostMetrics:
         self.source_prefix = source_prefix
         self.max_source_length = max_source_length
         self.max_target_length = max_target_length
-        self.beam_size = beam_size
+        self.num_beams = num_beams
         self.early_stopping = early_stopping
         self.ngram_blocking_size = ngram_blocking_size
         self.use_cuda = use_cuda
@@ -75,6 +78,7 @@ class PostMetrics:
             self.preprocess_function,
             batched=True,
             remove_columns=columns_to_remove,
+            load_from_cache_file=False
         )
 
     def preprocess_function(self, examples):
@@ -146,12 +150,13 @@ class PostMetrics:
             model_inputs.input_ids,
             attention_mask=model_inputs.attention_mask,
             max_length=self.max_target_length,
-            num_beams=self.beam_size,
-            no_repeat_ngram_size=self.ngram_blocking_size,
-            early_stopping=self.early_stopping
+            num_beams=self.num_beams,
+            # no_repeat_ngram_size=self.ngram_blocking_size,
+            # early_stopping=self.early_stopping
         )
 
-        batch["predictions"] = self.tokenizer.batch_decode(output, skip_special_tokens=True)
+        batch["predictions"] = self.tokenizer.batch_decode(output, skip_special_tokens=True,
+                                                           clean_up_tokenization_spaces=True)
 
         return batch
 
@@ -192,7 +197,7 @@ class PostMetrics:
         return {"unigram": unigram_results, "bigram": bigram_results, "trigram": trigram_results}
 
     def calculate_metrics(self):
-        results = self.test_data.map(self.generate_summary, batched=True, batch_size=self.batch_size)
+        results = self.test_data.map(self.generate_summary, batched=True, batch_size=self.batch_size, load_from_cache_file=False)
         rouge_output = self.calculate_rouge(results[self.target_column_name], results["predictions"],
                                             self.use_stemmer_in_rouge)
         novelty_ratios = self.calculate_novelty_ngram_ratios(results[self.source_column_name],
@@ -222,10 +227,10 @@ if __name__ == "__main__":
     parser.add_argument("--do_tr_lowercase", default=True, type=str2bool)
     parser.add_argument("--source_column_name", default="text", type=str)
     parser.add_argument("--target_column_name", default="summary", type=str)
-    parser.add_argument("--source_prefix", default="summary: ", type=str)
+    parser.add_argument("--source_prefix", default="summarize: ", type=str)
     parser.add_argument("--max_source_length", default=768, type=int)
     parser.add_argument("--max_target_length", default=120, type=int)
-    parser.add_argument("--beam_size", default=None, type=int)
+    parser.add_argument("--num_beams", default=None, type=int)
     parser.add_argument("--ngram_blocking_size", default=None, type=int)
     parser.add_argument("--early_stopping", default=None, type=str2bool)
     parser.add_argument("--use_cuda", default=False, type=str2bool)
@@ -245,7 +250,7 @@ if __name__ == "__main__":
                                do_tr_lowercase=args.do_tr_lowercase, source_column_name=args.source_column_name,
                                target_column_name=args.target_column_name, source_prefix=args.source_prefix,
                                max_source_length=args.max_source_length,
-                               max_target_length=args.max_target_length, beam_size=args.beam_size,
+                               max_target_length=args.max_target_length, num_beams=args.num_beams,
                                ngram_blocking_size=args.ngram_blocking_size, use_cuda=args.use_cuda,
                                batch_size=args.batch_size, write_results=args.write_results,
                                text_outputs_file_path=args.text_outputs_file_path,
