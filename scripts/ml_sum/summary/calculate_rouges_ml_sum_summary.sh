@@ -45,7 +45,7 @@ do
       --source_prefix "summarize: " \
       --num_beams 4 \
       --ngram_blocking_size 3 \
-      --early_stopping True \
+      --early_stopping False \
       --use_cuda False \
       --max_source_length 768 \
       --max_target_length 128 \
@@ -67,7 +67,7 @@ do
       --source_prefix "" \
       --num_beams 4 \
       --ngram_blocking_size 3 \
-      --early_stopping True \
+      --early_stopping False \
       --use_cuda False \
       --max_source_length 768 \
       --max_target_length 128 \
@@ -89,7 +89,7 @@ do
       --source_prefix "" \
       --num_beams 4 \
       --ngram_blocking_size 3 \
-      --early_stopping True \
+      --early_stopping False \
       --use_cuda False \
       --max_source_length 512 \
       --max_target_length 128 \
