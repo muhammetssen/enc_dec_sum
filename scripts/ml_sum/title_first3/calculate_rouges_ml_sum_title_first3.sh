@@ -43,7 +43,7 @@ do
       --num_beams 4 \
       --ngram_blocking_size 3 \
       --early_stopping False \
-      --use_cuda False \
+      --use_cuda True \
       --max_source_length 256 \
       --max_target_length 64 \
       --batch_size 16 \
@@ -64,7 +64,7 @@ do
       --num_beams 4 \
       --ngram_blocking_size 3 \
       --early_stopping False \
-      --use_cuda False \
+      --use_cuda True \
       --max_source_length 256 \
       --max_target_length 64 \
       --batch_size 16 \
@@ -85,7 +85,7 @@ do
       --num_beams 4 \
       --ngram_blocking_size 3 \
       --early_stopping False \
-      --use_cuda False \
+      --use_cuda True \
       --max_source_length 256 \
       --max_target_length 64 \
       --batch_size 16 \
