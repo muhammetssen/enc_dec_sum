@@ -20,8 +20,7 @@ MODELS_FOLDER=outputs
 DATASET_NAME=tr_news
 TASK_NAME=title
 
-#for MODEL_NAME in tr_news_mt5_title tr_news_mbart_title tr_news_berturk32k_title tr_news_berturk32k_cased_title tr_news_mbert_uncased_title tr_news_mbert_cased_title
-for MODEL_NAME in tr_news_mt5_title tr_news_berturk32k_title tr_news_berturk32k_cased_title tr_news_mbert_uncased_title tr_news_mbert_cased_title
+for MODEL_NAME in tr_news_mt5_title tr_news_mbart_title tr_news_berturk32k_title tr_news_berturk32k_cased_title tr_news_mbert_uncased_title tr_news_mbert_cased_title
 do
   for MODEL_NAME in $(find $HOME_DIR/$MODELS_FOLDER/$MODEL_NAME -maxdepth 1 -type d)
   do

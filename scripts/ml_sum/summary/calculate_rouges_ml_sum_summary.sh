@@ -21,8 +21,7 @@ MODELS_FOLDER=outputs
 DATASET_NAME=ml_sum
 TASK_NAME=summary
 
-#for MODEL_NAME in ml_sum_mt5_title ml_sum_mbart_title ml_sum_berturk32k_title ml_sum_berturk32k_cased_title ml_sum_mbert_uncased_title ml_sum_mbert_cased_title
-for MODEL_NAME in ml_sum_mt5_title ml_sum_mbart_title ml_sum_berturk32k_title ml_sum_berturk32k_cased_title ml_sum_mbert_uncased_title ml_sum_mbert_cased_title
+for MODEL_NAME in ml_sum_mt5_summary ml_sum_mbart_summary ml_sum_berturk32k_summary ml_sum_berturk32k_cased_summary ml_sum_mbert_uncased_summary ml_sum_mbert_cased_summary
 do
   for MODEL_NAME in $(find $HOME_DIR/$MODELS_FOLDER/$MODEL_NAME -maxdepth 1 -type d)
   do

@@ -21,8 +21,7 @@ MODELS_FOLDER=outputs
 DATASET_NAME=combined_tr
 TASK_NAME=summary
 
-#for MODEL_NAME in combined_tr_mt5_title combined_tr_mbart_title combined_tr_berturk32k_title combined_tr_berturk32k_cased_title combined_tr_mbert_uncased_title combined_tr_mbert_cased_title
-for MODEL_NAME in combined_tr_mt5_title combined_tr_mbart_title combined_tr_berturk32k_title combined_tr_berturk32k_cased_title combined_tr_mbert_uncased_title combined_tr_mbert_cased_title
+for MODEL_NAME in combined_tr_mt5_summary combined_tr_mbart_summary combined_tr_berturk32k_summary combined_tr_berturk32k_cased_summary combined_tr_mbert_uncased_summary combined_tr_mbert_cased_summary
 do
   for MODEL_NAME in $(find $HOME_DIR/$MODELS_FOLDER/$MODEL_NAME -maxdepth 1 -type d)
   do
