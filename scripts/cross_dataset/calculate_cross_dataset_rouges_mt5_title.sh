@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH -p long
+#SBATCH -p mid
 #SBATCH -J inf
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH -c 10
 #SBATCH --gres=gpu:1
 #SBATCH --constraint=v100
-#SBATCH --time=7-00:00:00
+#SBATCH --time=1-00:00:00
 
 module load cuda-10.2.89-gcc-10.2.0-dgnsc3t
 
