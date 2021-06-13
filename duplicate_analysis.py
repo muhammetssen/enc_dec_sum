@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
         duplicates_df = df[df.duplicated([text_field, abstract_field, title_field], keep=False)]
         total_unique_dups = len(duplicates_df)
-        duplicate_groups = duplicates_df[[field]].groupby(field)
+        duplicate_groups = duplicates_df[[text_field]].groupby(text_field)
         duplicate_counts_of_groups = duplicate_groups.size().values
         top_dups_in_group = duplicate_counts_of_groups[duplicate_counts_of_groups.argsort()[-10:][::-1]]
 
