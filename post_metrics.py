@@ -1,14 +1,17 @@
 import argparse
 import json
 import re
-
+import sys
+import os
 import datasets
 import numpy as np
 import pandas as pd
-from nltk import ngrams
+from nltk import ngrams, sent_tokenize, word_tokenize
 from transformers import AutoTokenizer, AutoConfig, EncoderDecoderModel, AutoModelForSeq2SeqLM, MBartTokenizerFast, \
     set_seed
 
+rouge_directory = os.path.dirname(os.path.abspath(__file__))+"/rouge-metric"
+sys.path.append(rouge_directory)
 set_seed(42)
 
 
@@ -34,9 +37,11 @@ class PostMetrics:
                  target_column_name="abstract", source_prefix=None, max_source_length=768, max_target_length=120,
                  num_beams=None,
                  ngram_blocking_size=None, early_stopping=None, use_cuda=False, batch_size=2, write_results=True,
+                 lead=False, lead_size=3,
                  text_outputs_file_path="text_outputs.csv",
                  rouge_outputs_file_path="rouge_outputs.json",
                  novelty_outputs_file_path="novelty_outputs.json",
+                 text_outputs_exist=False,
                  use_stemmer_in_rouge=True):
         self.model_name_or_path = model_name_or_path
         self.do_tr_lowercase = do_tr_lowercase
@@ -51,12 +56,15 @@ class PostMetrics:
         self.use_cuda = use_cuda
         self.batch_size = batch_size
         self.write_results = write_results
+        self.lead = lead
+        self.lead_size = lead_size
         self.text_outputs_file_path = text_outputs_file_path
         self.rouge_outputs_file_path = rouge_outputs_file_path
         self.novelty_outputs_file_path = novelty_outputs_file_path
+        self.text_outputs_exist = text_outputs_exist
         self.use_stemmer_in_rouge = use_stemmer_in_rouge
 
-        self.rouge = datasets.load_metric("rouge")
+        self.rouge = datasets.load_metric(rouge_directory+"/rouge_custom")
         self.model, self.tokenizer = self.load_model_and_tokenizer()
 
         if self.use_cuda:
@@ -70,6 +78,7 @@ class PostMetrics:
             data_files["test"] = dataset_test_csv_file_path
             self.test_data = datasets.load_dataset("csv", data_files=data_files, split="test")
 
+        # For debugging purposes
         # self.test_data = self.test_data.select(range(8))
 
         columns_to_remove = list(
@@ -135,6 +144,16 @@ class PostMetrics:
 
         return model, tokenizer
 
+    def calc_lead(self, batch):
+        inputs = batch[self.source_column_name]
+        summaries = []
+        for inp in inputs:
+            summaries.append(" ".join(sent_tokenize(inp)[:self.lead_size]))
+
+        batch["predictions"] = summaries
+
+        return batch
+
     def generate_summary(self, batch):
         tokenizer = self.tokenizer
         inputs = batch[self.source_column_name]
@@ -161,7 +180,7 @@ class PostMetrics:
         return batch
 
     def calculate_rouge(self, references, predictions, use_stemmer):
-        rouge_output = self.rouge.compute(predictions=predictions, references=references, use_stemmer=use_stemmer)
+        rouge_output = self.rouge.compute(predictions=predictions, references=references, use_stemmer=use_stemmer, language="tr")
         rouge_output["R1_F_avg"] = rouge_output["rouge1"].mid.fmeasure
         rouge_output["R2_F_avg"] = rouge_output["rouge2"].mid.fmeasure
         rouge_output["RL_F_avg"] = rouge_output["rougeL"].mid.fmeasure
@@ -169,42 +188,91 @@ class PostMetrics:
 
         return rouge_output
 
-    def calculate_novelty_ngram_ratio(self, sources, references, predictions, ngram_size):
+    def tokenize(self, text):
+        text = text.replace("'", " '")
+        tokens = []
+        for sent in sent_tokenize(text):
+            for word in word_tokenize(sent):
+                tokens.append(word)
+        return tokens
+
+    def calculate_novelty_ngram_ratio_macro(self, sources, references, predictions, ngram_size):
         prediction_novelty_ratios = []
         reference_novelty_ratios = []
 
         for source, reference, prediction in zip(sources, references, predictions):
-            prediction_ngrams = set(ngrams(prediction.split(), ngram_size))
-            reference_ngrams = set(ngrams(reference.split(), ngram_size))
-            source_ngrams = set(ngrams(source.split(), ngram_size))
+            prediction_tokens = self.tokenize(prediction)
+            reference_tokens = self.tokenize(reference)
+            source_tokens = self.tokenize(source)
+
+            prediction_ngrams = set(ngrams(prediction_tokens, ngram_size))
+            reference_ngrams = set(ngrams(reference_tokens, ngram_size))
+            source_ngrams = set(ngrams(source_tokens, ngram_size))
 
             joint = prediction_ngrams.intersection(source_ngrams)
             novel = prediction_ngrams - joint
-            prediction_novelty_ratios.append(len(novel) / (len(prediction.split()) + 1e-6))
+            prediction_novelty_ratios.append(len(novel) / (len(prediction_tokens) + 1e-6))
 
             joint = reference_ngrams.intersection(source_ngrams)
             novel = reference_ngrams - joint
-            reference_novelty_ratios.append(len(novel) / (len(reference.split()) + 1e-6))
+            reference_novelty_ratios.append(len(novel) / (len(reference_tokens) + 1e-6))
 
         return {"prediction_novelty_ratios": np.array(prediction_novelty_ratios).mean(),
                 "reference_novelty_ratios": np.array(reference_novelty_ratios).mean()}
 
+    def calculate_novelty_ngram_ratio_micro(self, sources, references, predictions, ngram_size):
+        prediction_num_novels = 0
+        prediction_num_prediction = 0
+        reference_num_novels = 0
+        reference_num_prediction = 0
+
+        for source, reference, prediction in zip(sources, references, predictions):
+            prediction_tokens = self.tokenize(prediction)
+            reference_tokens = self.tokenize(reference)
+            source_tokens = self.tokenize(source)
+
+            prediction_ngrams = set(ngrams(prediction_tokens, ngram_size))
+            reference_ngrams = set(ngrams(reference_tokens, ngram_size))
+            source_ngrams = set(ngrams(source_tokens, ngram_size))
+
+            joint = prediction_ngrams.intersection(source_ngrams)
+            novel = prediction_ngrams - joint
+            prediction_num_novels += len(novel)
+            prediction_num_prediction += len(prediction.split())
+
+            joint = reference_ngrams.intersection(source_ngrams)
+            novel = reference_ngrams - joint
+            reference_num_novels += len(novel)
+            reference_num_prediction += len(reference.split())
+
+        return {"prediction_novelty_ratios": prediction_num_novels/prediction_num_prediction, "reference_novelty_ratios": reference_num_novels/reference_num_prediction}
+
     def calculate_novelty_ngram_ratios(self, sources, references, predictions):
-        unigram_results = self.calculate_novelty_ngram_ratio(sources, references, predictions, 1)
-        bigram_results = self.calculate_novelty_ngram_ratio(sources, references, predictions, 2)
-        trigram_results = self.calculate_novelty_ngram_ratio(sources, references, predictions, 3)
+        unigram_results = self.calculate_novelty_ngram_ratio_macro(sources, references, predictions, 1)
+        bigram_results = self.calculate_novelty_ngram_ratio_macro(sources, references, predictions, 2)
+        trigram_results = self.calculate_novelty_ngram_ratio_macro(sources, references, predictions, 3)
 
         return {"unigram": unigram_results, "bigram": bigram_results, "trigram": trigram_results}
 
     def calculate_metrics(self):
-        results = self.test_data.map(self.generate_summary, batched=True, batch_size=self.batch_size,
-                                     load_from_cache_file=False)
-        rouge_output = self.calculate_rouge(results[self.target_column_name], results["predictions"],
-                                            self.use_stemmer_in_rouge)
-        novelty_ratios = self.calculate_novelty_ngram_ratios(results[self.source_column_name],
-                                                             results[self.target_column_name], results["predictions"])
+        if self.text_outputs_exist:
+            text_outputs_df = pd.read_csv(self.text_outputs_file_path)
+            results=dict()
+            results[self.source_column_name] = text_outputs_df['source'].tolist()
+            results[self.target_column_name] = text_outputs_df['target'].tolist()
+            results["predictions"] = text_outputs_df['predictions'].tolist()
+        else:
+            if self.lead:
+                results = self.test_data.map(self.calc_lead, batched=True, batch_size=self.batch_size,
+                                             load_from_cache_file=False)
+            else:
+                results = self.test_data.map(self.generate_summary, batched=True, batch_size=self.batch_size,
+                                             load_from_cache_file=False)
 
+        rouge_output = self.calculate_rouge(results[self.target_column_name], results["predictions"], self.use_stemmer_in_rouge)
         print(rouge_output)
+
+        novelty_ratios = self.calculate_novelty_ngram_ratios(results[self.source_column_name], results[self.target_column_name], results["predictions"])
         print(novelty_ratios)
 
         if self.write_results:
@@ -241,6 +309,9 @@ if __name__ == "__main__":
     parser.add_argument("--novelty_outputs_file_path", default="novelty_outputs.json", type=str)
     parser.add_argument("--batch_size", default=2, type=int)
     parser.add_argument("--use_stemmer_in_rouge", default=True, type=str2bool)
+    parser.add_argument("--lead", default=False, type=str2bool)
+    parser.add_argument("--lead_size", default=3, type=int)
+    parser.add_argument("--text_outputs_exist", default=False, type=str2bool)
 
     args, unknown = parser.parse_known_args()
     print(args)
@@ -258,7 +329,8 @@ if __name__ == "__main__":
                                text_outputs_file_path=args.text_outputs_file_path,
                                rouge_outputs_file_path=args.rouge_outputs_file_path,
                                novelty_outputs_file_path=args.novelty_outputs_file_path,
-                               use_stemmer_in_rouge=args.use_stemmer_in_rouge
+                               use_stemmer_in_rouge=args.use_stemmer_in_rouge,
+                               lead=args.lead, lead_size=args.lead_size, text_outputs_exist=args.text_outputs_exist
                                )
 
     post_metrics.calculate_metrics()
