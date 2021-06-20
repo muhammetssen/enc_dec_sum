@@ -8,7 +8,9 @@ tokenizers
 pandas
 numpy
 datasets
-nltk
+nltk==3.4
 rouge_score
 psutil
 py3nvml
+snowballstemmer
+TurkishStemmer
