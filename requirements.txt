@@ -8,7 +8,7 @@ tokenizers
 pandas
 numpy
 datasets
-nltk==3.4
+nltk
 rouge_score
 psutil
 py3nvml
