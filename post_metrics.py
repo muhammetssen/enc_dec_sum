@@ -65,30 +65,32 @@ class PostMetrics:
         self.use_stemmer_in_rouge = use_stemmer_in_rouge
 
         self.rouge = datasets.load_metric(rouge_directory+"/rouge_custom")
-        self.model, self.tokenizer = self.load_model_and_tokenizer()
 
-        if self.use_cuda:
-            self.model = self.model.to("cuda")
+        if not self.text_outputs_exist:
+            self.model, self.tokenizer = self.load_model_and_tokenizer()
 
-        assert dataset_name is not None or dataset_test_csv_file_path is not None, "Either dataset name or file path should be given."
-        if dataset_name is not None:
-            self.test_data = datasets.load_dataset(dataset_name, dataset_version, split="test")
-        else:
-            data_files = dict()
-            data_files["test"] = dataset_test_csv_file_path
-            self.test_data = datasets.load_dataset("csv", data_files=data_files, split="test")
+            if self.use_cuda:
+                self.model = self.model.to("cuda")
 
-        # For debugging purposes
-        # self.test_data = self.test_data.select(range(8))
+            assert dataset_name is not None or dataset_test_csv_file_path is not None, "Either dataset name or file path should be given."
+            if dataset_name is not None:
+                self.test_data = datasets.load_dataset(dataset_name, dataset_version, split="test")
+            else:
+                data_files = dict()
+                data_files["test"] = dataset_test_csv_file_path
+                self.test_data = datasets.load_dataset("csv", data_files=data_files, split="test")
 
-        columns_to_remove = list(
-            set(self.test_data.column_names) - set([self.source_column_name, self.target_column_name]))
-        self.test_data = self.test_data.map(
-            self.preprocess_function,
-            batched=True,
-            remove_columns=columns_to_remove,
-            load_from_cache_file=False
-        )
+            # For debugging purposes
+            # self.test_data = self.test_data.select(range(8))
+
+            columns_to_remove = list(
+                set(self.test_data.column_names) - set([self.source_column_name, self.target_column_name]))
+            self.test_data = self.test_data.map(
+                self.preprocess_function,
+                batched=True,
+                remove_columns=columns_to_remove,
+                load_from_cache_file=False
+            )
 
     def preprocess_function(self, examples):
         if self.do_tr_lowercase:
