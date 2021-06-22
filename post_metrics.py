@@ -1,8 +1,9 @@
 import argparse
 import json
+import os
 import re
 import sys
-import os
+
 import datasets
 import numpy as np
 import pandas as pd
@@ -10,7 +11,7 @@ from nltk import ngrams, sent_tokenize, word_tokenize
 from transformers import AutoTokenizer, AutoConfig, EncoderDecoderModel, AutoModelForSeq2SeqLM, MBartTokenizerFast, \
     set_seed
 
-rouge_directory = os.path.dirname(os.path.abspath(__file__))+"/rouge-metric"
+rouge_directory = os.path.dirname(os.path.abspath(__file__)) + "/rouge-metric"
 sys.path.append(rouge_directory)
 set_seed(42)
 
@@ -64,7 +65,7 @@ class PostMetrics:
         self.text_outputs_exist = text_outputs_exist
         self.use_stemmer_in_rouge = use_stemmer_in_rouge
 
-        self.rouge = datasets.load_metric(rouge_directory+"/rouge_custom")
+        self.rouge = datasets.load_metric(rouge_directory + "/rouge_custom")
 
         if not self.text_outputs_exist:
             self.model, self.tokenizer = self.load_model_and_tokenizer()
@@ -182,7 +183,8 @@ class PostMetrics:
         return batch
 
     def calculate_rouge(self, references, predictions, use_stemmer):
-        rouge_output = self.rouge.compute(predictions=predictions, references=references, use_stemmer=use_stemmer, language="tr")
+        rouge_output = self.rouge.compute(predictions=predictions, references=references, use_stemmer=use_stemmer,
+                                          language="tr")
         rouge_output["R1_F_avg"] = rouge_output["rouge1"].mid.fmeasure
         rouge_output["R2_F_avg"] = rouge_output["rouge2"].mid.fmeasure
         rouge_output["RL_F_avg"] = rouge_output["rougeL"].mid.fmeasure
@@ -247,7 +249,8 @@ class PostMetrics:
             reference_num_novels += len(novel)
             reference_num_prediction += len(reference.split())
 
-        return {"prediction_novelty_ratios": prediction_num_novels/prediction_num_prediction, "reference_novelty_ratios": reference_num_novels/reference_num_prediction}
+        return {"prediction_novelty_ratios": prediction_num_novels / prediction_num_prediction,
+                "reference_novelty_ratios": reference_num_novels / reference_num_prediction}
 
     def calculate_novelty_ngram_ratios(self, sources, references, predictions):
         unigram_results = self.calculate_novelty_ngram_ratio_macro(sources, references, predictions, 1)
@@ -258,8 +261,12 @@ class PostMetrics:
 
     def calculate_metrics(self):
         if self.text_outputs_exist:
-            text_outputs_df = pd.read_csv(self.text_outputs_file_path)
-            results=dict()
+            text_outputs_df = pd.read_csv(self.text_outputs_file_path, usecols=["source", "target", "predictions"])
+            text_outputs_df['source'] = text_outputs_df['source'].astype(str)
+            text_outputs_df['target'] = text_outputs_df['target'].astype(str)
+            text_outputs_df['predictions'] = text_outputs_df['predictions'].astype(str)
+
+            results = dict()
             results[self.source_column_name] = text_outputs_df['source'].tolist()
             results[self.target_column_name] = text_outputs_df['target'].tolist()
             results["predictions"] = text_outputs_df['predictions'].tolist()
@@ -271,10 +278,12 @@ class PostMetrics:
                 results = self.test_data.map(self.generate_summary, batched=True, batch_size=self.batch_size,
                                              load_from_cache_file=False)
 
-        rouge_output = self.calculate_rouge(results[self.target_column_name], results["predictions"], self.use_stemmer_in_rouge)
+        rouge_output = self.calculate_rouge(results[self.target_column_name], results["predictions"],
+                                            self.use_stemmer_in_rouge)
         print(rouge_output)
 
-        novelty_ratios = self.calculate_novelty_ngram_ratios(results[self.source_column_name], results[self.target_column_name], results["predictions"])
+        novelty_ratios = self.calculate_novelty_ngram_ratios(results[self.source_column_name],
+                                                             results[self.target_column_name], results["predictions"])
         print(novelty_ratios)
 
         if self.write_results:
