@@ -20,7 +20,7 @@ MODELS_FOLDER=outputs
 DATASET_NAME=title_length_ablation
 TASK_NAME=title_length_ablation
 
-for MODEL_NAME in tr_news_mt5_title_first1 tr_news_mt5_title_first2 ml_sum_mt5_title_first1 ml_sum_mt5_title_first2 combined_tr_mt5_title_first1 combined_tr_mt5_title_first2
+for MODEL_NAME in tr_news_mt5_title_first4 tr_news_mt5_title_first5 ml_sum_mt5_title_first4 ml_sum_mt5_title_first5 combined_tr_mt5_title_first4 combined_tr_mt5_title_first5
 do
   for MODEL_NAME in $(find $HOME_DIR/$MODELS_FOLDER/$MODEL_NAME -maxdepth 1 -type d)
   do
@@ -38,13 +38,13 @@ do
       DATASET_NAME="combined_tr_raw"
     fi
 
-    if [[ "$MODEL_NAME" == *"first1"* ]]; then
-      echo "first1"
-      SOURCE_FIELD="first1"
+    if [[ "$MODEL_NAME" == *"first4"* ]]; then
+      echo "first4"
+      SOURCE_FIELD="first4"
     fi
-    if [[ "$MODEL_NAME" == *"first2"* ]]; then
-      echo "first2"
-      SOURCE_FIELD="first2"
+    if [[ "$MODEL_NAME" == *"first5"* ]]; then
+      echo "first5"
+      SOURCE_FIELD="first5"
     fi
 
     mkdir -p $HOME_DIR/$RESULTS_FOLDER/$TASK_NAME/$MODEL_NAME
@@ -55,7 +55,7 @@ do
     --dataset_test_csv_file_path $HOME_DIR/data/$DATASET_NAME/test.csv \
     --text_outputs_file_path $HOME_DIR/$RESULTS_FOLDER/$TASK_NAME/$MODEL_NAME/text_outputs.csv \
     --rouge_outputs_file_path $HOME_DIR/$RESULTS_FOLDER/$TASK_NAME/$MODEL_NAME/rouge_outputs.json \
-    --novelty_outputs_file_path $HOME_DIR/$RESULTS_FOLDER/$TASK_NAME/$MODEL_NAME/novely_outputs.json \
+    --novelty_outputs_file_path $HOME_DIR/$RESULTS_FOLDER/$TASK_NAME/$MODEL_NAME/novelty_outputs.json \
     --do_tr_lowercase True \
     --source_column_name $SOURCE_FIELD \
     --target_column_name title \
@@ -67,7 +67,7 @@ do
     --max_source_length 256 \
     --max_target_length 64 \
     --batch_size 16 \
-    --use_stemmer_in_rouge False
+    --use_stemmer_in_rouge True
   done
 done
 
