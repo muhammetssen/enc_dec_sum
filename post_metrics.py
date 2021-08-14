@@ -43,7 +43,7 @@ class PostMetrics:
                  rouge_outputs_file_path="rouge_outputs.json",
                  novelty_outputs_file_path="novelty_outputs.json",
                  text_outputs_exist=False,
-                 use_stemmer_in_rouge=True):
+                 use_stemmer_in_rouge=True,language="tr"):
         self.model_name_or_path = model_name_or_path
         self.do_tr_lowercase = do_tr_lowercase
         self.source_column_name = source_column_name
@@ -64,6 +64,7 @@ class PostMetrics:
         self.novelty_outputs_file_path = novelty_outputs_file_path
         self.text_outputs_exist = text_outputs_exist
         self.use_stemmer_in_rouge = use_stemmer_in_rouge
+        self.language = language
 
         self.rouge = datasets.load_metric(rouge_directory + "/rouge_custom")
 
@@ -182,9 +183,9 @@ class PostMetrics:
 
         return batch
 
-    def calculate_rouge(self, references, predictions, use_stemmer):
+    def calculate_rouge(self, references, predictions, use_stemmer, language):
         rouge_output = self.rouge.compute(predictions=predictions, references=references, use_stemmer=use_stemmer,
-                                          language="tr")
+                                          language=language)
         rouge_output["R1_F_avg"] = rouge_output["rouge1"].mid.fmeasure
         rouge_output["R2_F_avg"] = rouge_output["rouge2"].mid.fmeasure
         rouge_output["RL_F_avg"] = rouge_output["rougeL"].mid.fmeasure
@@ -279,7 +280,7 @@ class PostMetrics:
                                              load_from_cache_file=False)
 
         rouge_output = self.calculate_rouge(results[self.target_column_name], results["predictions"],
-                                            self.use_stemmer_in_rouge)
+                                            self.use_stemmer_in_rouge, self.language)
         print(rouge_output)
 
         novelty_ratios = self.calculate_novelty_ngram_ratios(results[self.source_column_name],
@@ -323,6 +324,7 @@ if __name__ == "__main__":
     parser.add_argument("--lead", default=False, type=str2bool)
     parser.add_argument("--lead_size", default=3, type=int)
     parser.add_argument("--text_outputs_exist", default=False, type=str2bool)
+    parser.add_argument("--language", default="tr", type=str)
 
     args, unknown = parser.parse_known_args()
     print(args)
@@ -341,7 +343,8 @@ if __name__ == "__main__":
                                rouge_outputs_file_path=args.rouge_outputs_file_path,
                                novelty_outputs_file_path=args.novelty_outputs_file_path,
                                use_stemmer_in_rouge=args.use_stemmer_in_rouge,
-                               lead=args.lead, lead_size=args.lead_size, text_outputs_exist=args.text_outputs_exist
+                               lead=args.lead, lead_size=args.lead_size, text_outputs_exist=args.text_outputs_exist,
+                               language=args.language
                                )
 
     post_metrics.calculate_metrics()
