@@ -47,6 +47,7 @@ do
       --max_source_length 256 \
       --max_target_length 64 \
       --batch_size 16 \
+      --language "hu" \
       --use_stemmer_in_rouge False
     fi
     if [[ "$MODEL_NAME" == *"mbart"* ]]; then
@@ -68,6 +69,7 @@ do
       --max_source_length 256 \
       --max_target_length 64 \
       --batch_size 16 \
+      --language "hu" \
       --use_stemmer_in_rouge False
     fi
     if [[ "$MODEL_NAME" == *"bert"* ]]; then
@@ -89,6 +91,7 @@ do
       --max_source_length 256 \
       --max_target_length 64 \
       --batch_size 16 \
+      --language "hu" \
       --use_stemmer_in_rouge False
     fi
   done
