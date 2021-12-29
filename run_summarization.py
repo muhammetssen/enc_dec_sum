@@ -109,7 +109,11 @@ class DataTrainingArguments:
     )
 
     do_tr_lowercase: Optional[bool] = field(
-        default=False, metadata={"help": "The name of the dataset to use (via the datasets library)."}
+        default=False, metadata={"help": "Apply Turkish lowercasing."}
+    )
+
+    do_lowercase: Optional[bool] = field(
+        default=False, metadata={"help": "Lowercase the data."}
     )
 
     dataset_name: Optional[str] = field(
@@ -451,6 +455,10 @@ def main():
         if data_args.do_tr_lowercase:
             inputs = [lower_tr(inp) for inp in inputs]
             targets = [lower_tr(trg) for trg in targets]
+
+        if data_args.do_lowercase:
+            inputs = [inp.lower() for inp in inputs]
+            targets = [trg.lower() for trg in targets]
 
         inputs = [prefix + inp for inp in inputs]
         model_inputs = tokenizer(inputs, max_length=data_args.max_source_length, padding=padding, truncation=True)
