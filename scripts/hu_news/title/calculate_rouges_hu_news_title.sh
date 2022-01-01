@@ -1,20 +1,21 @@
 #!/bin/bash
-#SBATCH -p long
+#SBATCH -p barbun-cuda
+#SBATCH -A bbaykara
 #SBATCH -J inf
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH -c 10
-#SBATCH --gres=gpu:1
-##SBATCH --constraint=v100
+#SBATCH -c 20
+#SBATCH --gres=gpu:2
 #SBATCH --time=7-00:00:00
+#SBATCH --mail-type=ALL
 
-module load cuda-10.2.89-gcc-10.2.0-dgnsc3t
+module load centos7.3/lib/cuda/10.1
 
 echo "SLURM_NODELIST $SLURM_NODELIST"
 echo "NUMBER OF CORES $SLURM_NTASKS"
 echo "CUDA DEVICES $CUDA_VISIBLE_DEVICES"
 
-HOME_DIR=/cta/users/bbaykara/code/enc_dec_sum
+HOME_DIR=/truba/home/bbaykara/code/enc_dec_sum
 RESULTS_FOLDER=results
 MODELS_FOLDER=outputs
 DATASET_NAME=hu_news

@@ -1,24 +1,25 @@
 #!/bin/bash
-#SBATCH -p long
-#SBATCH -J train_t
+#SBATCH -p akya-cuda
+#SBATCH -A bbaykara
+#SBATCH -J hubert_cased_hu_news
 #SBATCH -N 1
 #SBATCH -n 1
-#SBATCH -c 10
-#SBATCH --gres=gpu:1
-#SBATCH --constraint=v100
+#SBATCH -c 40
+#SBATCH --gres=gpu:4
 #SBATCH --time=7-00:00:00
+#SBATCH --mail-type=ALL
 
-module load cuda-10.2.89-gcc-10.2.0-dgnsc3t
+module load centos7.3/lib/cuda/10.1
 
 echo "SLURM_NODELIST $SLURM_NODELIST"
 echo "NUMBER OF CORES $SLURM_NTASKS"
 echo "CUDA DEVICES $CUDA_VISIBLE_DEVICES"
 
 RUN_NAME=hu_news_hubert_cased_title
-HOME_DIR=/cta/users/bbaykara/code/enc_dec_sum
+HOME_DIR=/truba/home/bbaykara/code/enc_dec_sum
 OUTPUTS_DIR=$HOME_DIR/outputs/$RUN_NAME
 
-$HOME_DIR/venv/bin/python  $HOME_DIR/run_summarization.py \
+$HOME_DIR/venv/bin/python -m torch.distributed.launch --nproc_per_node=4 $HOME_DIR/run_summarization.py \
 --model_name_or_path SZTAKI-HLT/hubert-base-cc \
 --pad_to_max_length True \
 --do_train \
@@ -43,9 +44,10 @@ $HOME_DIR/venv/bin/python  $HOME_DIR/run_summarization.py \
 --do_lowercase \
 --preprocessing_num_workers 10 \
 --dataloader_num_workers 2 \
---gradient_accumulation_steps 2 \
---per_gpu_train_batch_size 16 \
---per_gpu_eval_batch_size 16 \
+--gradient_accumulation_steps 1 \
+--per_gpu_train_batch_size 8 \
+--per_gpu_eval_batch_size 8 \
 --num_train_epochs 10 \
 --logging_steps 500 \
+--sharded_ddp simple \
 --warmup_steps 1000 
