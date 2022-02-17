@@ -43,7 +43,7 @@ class PostMetrics:
                  rouge_outputs_file_path="rouge_outputs.json",
                  novelty_outputs_file_path="novelty_outputs.json",
                  text_outputs_exist=False,
-                 use_stemmer_in_rouge=True,language="tr"):
+                 use_stemmer_in_rouge=True, language="tr"):
         self.model_name_or_path = model_name_or_path
         self.do_tr_lowercase = do_tr_lowercase
         self.source_column_name = source_column_name
@@ -184,6 +184,16 @@ class PostMetrics:
         return batch
 
     def calculate_rouge(self, references, predictions, use_stemmer, language):
+        '''
+        tokens_list = list(map(self.tokenize, predictions))
+        pred_lens = list(map(len, tokens_list))
+        avg_len = sum(pred_lens) / (len(predictions))
+        print("Average number of tokens in predictions: {}".format(avg_len))
+        max_token_len =50
+        tokens_list = list(map(self.tokenize, predictions))
+        predictions = list(map(lambda x: " ".join(x[:max_token_len]), tokens_list))
+        '''
+
         rouge_output = self.rouge.compute(predictions=predictions, references=references, use_stemmer=use_stemmer,
                                           language=language)
         rouge_output["R1_F_avg"] = rouge_output["rouge1"].mid.fmeasure
