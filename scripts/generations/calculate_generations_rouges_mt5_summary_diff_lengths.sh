@@ -22,7 +22,7 @@ TASK_NAME=summary
 
 for MODEL_NAME in tr_news_mt5_summary/checkpoint-60718 ml_sum_mt5_summary/checkpoint-62320 combined_tr_mt5_summary/checkpoint-131712
 do
-  for LENGTH in 32 64 128 192 256 320
+  for LENGTH in 64 96 128 160 192 224
   do
     OUTPUTS_PATH=$HOME_DIR/$RESULTS_FOLDER/generations/$TASK_NAME/$MODEL_NAME/length_$LENGTH
     mkdir -p $OUTPUTS_PATH
