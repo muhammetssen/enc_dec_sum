@@ -15,7 +15,8 @@ class Item(BaseModel):
 
 
 app = FastAPI()
-api_helper = ApiHelper("outputs/checkpoint-82325", do_tr_lowercase=True, source_prefix="", max_source_length=512,
+api_helper = ApiHelper("batubayk/combined_tr_berturk32k_cased_summary", do_tr_lowercase=True, source_prefix="",
+                       max_source_length=512,
                        max_target_length=120, num_beams=4, ngram_blocking_size=3, early_stopping=None,
                        use_cuda=torch.cuda.is_available(),
                        batch_size=1, language="tr")
@@ -23,7 +24,7 @@ api_helper = ApiHelper("outputs/checkpoint-82325", do_tr_lowercase=True, source_
 
 @app.get("/")
 def home():
-    return {"Hello": "GET"}
+    return {"Hello World!"}
 
 
 @app.post("/summarize")
@@ -38,7 +39,7 @@ async def generate(item: Item):
     result = test_data.map(api_helper.generate_summary, batched=True, batch_size=api_helper.batch_size,
                            load_from_cache_file=False)
 
-    return json.dumps({"summary": result['predictions'][0]},ensure_ascii=False)
+    return json.dumps({"summary": result['predictions'][0]}, ensure_ascii=False)
 
 
 if __name__ == "__main__":
