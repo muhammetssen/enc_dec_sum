@@ -14,4 +14,4 @@ psutil
 py3nvml
 snowballstemmer
 TurkishStemmer
-"fastapi[all]"
+fastapi[all]
