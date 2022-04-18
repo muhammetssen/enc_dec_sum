@@ -45,4 +45,5 @@ if "mbart" in model_name_or_path:
 if model.config.decoder_start_token_id is None:
     raise ValueError("Make sure that `config.decoder_start_token_id` is correctly defined")
 
-model.push_to_hub(model_repo_name,use_temp_dir=True)
+model.push_to_hub(model_repo_name)
+tokenizer.push_to_hub(model_repo_name)
